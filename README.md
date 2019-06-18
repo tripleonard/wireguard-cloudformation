@@ -13,10 +13,12 @@ The default AMI is Amazon Linux 2.
 Steps:
 
 * After the cloudformation is deployed and server has rebooted as required ssh into it and start wireguard
-    ```wg-quick up wg0
+    ```
+    wg-quick up wg0
     ```
 * Then get the client config and paste it into your client's configuration
-    ```sudo cat /tmp/wg0-client.conf
+    ```
+    sudo cat /tmp/wg0-client.conf
     ```
 
 Caveats
