@@ -23,4 +23,4 @@ Steps:
 
 Caveats
 
-* The procecess leverages Google DNS 8.8.4.4 for name resolution. 
+* The process leverages Google DNS 8.8.4.4 for name resolution. 
