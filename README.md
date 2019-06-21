@@ -21,6 +21,6 @@ Steps:
     sudo cat /tmp/wg0-client.conf
     ```
 
-Caveats
+Caveats:
 
-* The process leverages Google DNS 8.8.4.4 for name resolution. 
+* The automation leverages Google DNS 8.8.4.4 for name resolution, which is not ideal.  Maybe I will address that in the future to prevent dns leaking.
