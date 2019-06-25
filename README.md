@@ -8,7 +8,10 @@ You will need the following:
 * Launch the `wireguard-eip-master.json` template first. It will export the elastic IP used by the `wireguard-master.json`template (so you can conveniently use the same public IP).
 * Your VPC's default security group ID
 
-The default AMI is Amazon Linux 2.
+Of Note:
+
+* The default AMI is Amazon Linux 2
+* This sets up the server as a DNS resolver with unbound
 
 Steps:
 
@@ -21,6 +24,6 @@ Steps:
     sudo cat /tmp/wg0-client.conf
     ```
 
-Caveats:
+Todo:
 
-* The automation leverages Google DNS 8.8.4.4 for name resolution, which is not ideal.  Maybe I will address that in the future to prevent dns leaking.
+* Parameterize some of the unbound configuration and IP addresses.
