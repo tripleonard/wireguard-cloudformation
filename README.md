@@ -11,7 +11,7 @@ You will need the following:
 Of Note:
 
 * The default AMI is Amazon Linux 2
-* This sets up the server as a DNS resolver with unbound to prevent DNS leaking
+* This sets up the server as a DNS resolver with unbound to prevent [DNS leaking](http://dnsleak.com/)
 
 Steps:
 
