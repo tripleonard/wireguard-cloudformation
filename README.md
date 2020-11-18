@@ -10,7 +10,7 @@ You will need the following:
 
 Of Note:
 
-* The default AMI is Amazon Linux 2
+* The default AMI is Amazon Linux 2 and it grabs the latest (NOT FOR PRODUCTION)
 * This sets up the server as a DNS resolver with unbound to prevent [DNS leaking](http://dnsleak.com/)
 
 Steps:

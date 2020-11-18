@@ -3,17 +3,17 @@
     "Description": "Set up a wireguard VPN",
     "Metadata": {},
     "Parameters": {
-        "VpnAmiId": {
-            "Description": "Provide the AWS Marketplace VPN AMI ID",
-            "Default": "ami-017eb71b9187457cc",
-            "Type": "AWS::EC2::Image::Id"
+        "LatestAmiId": {
+            "Description": "Grab the latest AL2 AMI",
+            "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2",
+            "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
         },
         "SshKey": {
             "Description": "Previously created ssh key",
             "Type": "String"
         },
         "InstanceType": {
-            "Default": "t2.nano",
+            "Default": "t3a.nano",
             "Description": "Instance type",
             "Type": "String"
         },
@@ -224,7 +224,7 @@
             },
             "Properties": {
                 "ImageId": {
-                    "Ref": "VpnAmiId"
+                    "Ref": "LatestAmiId"
                 },
                 "InstanceType": {
                     "Ref": "InstanceType"
