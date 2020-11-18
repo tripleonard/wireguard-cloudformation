@@ -144,7 +144,11 @@
                                             "[Peer]\n",
                                             "PublicKey = fakeServerPublicKey\n",
                                             "AllowedIPs = 0.0.0.0/0\n",
-                                            "Endpoint = 54.190.203.225:51820\n"
+                                            "Endpoint = ",
+                                            {
+                                                "Fn::ImportValue": "WireguardEIPAddress"
+                                            },
+                                            ":51820\n"
                                         ]
                                     ]
                                 },
@@ -250,6 +254,7 @@
                                 },
                                 "\n",
                                 "echo \"net.ipv4.ip_forward = 1\" > /etc/sysctl.conf\n",
+                                "echo \"net.ipv6.conf.all.forwarding = 1\" >> /etc/sysctl.conf\n",
                                 "# Generate keys and put them in configs\n",
                                 "SERVER_PRIVATE_KEY=$(wg genkey)\n",
                                 "SERVER_PUBLIC_KEY=$(echo $SERVER_PRIVATE_KEY | wg pubkey)\n",

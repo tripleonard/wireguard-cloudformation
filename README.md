@@ -24,6 +24,9 @@ Steps:
     sudo cat /tmp/wg0-client.conf
     ```
 
+Dragons:
+* The root name servers are hard coded here https://www.internic.net/domain/named.cache, if that address changes the UserData will need to be udpated
+
 Todo:
 
 * Parameterize some of the unbound configuration and IP addresses.
