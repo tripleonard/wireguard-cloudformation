@@ -162,9 +162,9 @@
                                         "",
                                         [
                                             "server:\n",
-                                            "   access-control: 0.0.0.0/0                 refuse\n",
-                                            "   access-control: 10.10.10.0/24         allow\n",
-                                            "   access-control: 127.0.0.1                 allow    chroot: \"\"\n",
+                                            "   access-control: 0.0.0.0/0           refuse\n",
+                                            "   access-control: 10.10.10.0/24       allow\n",
+                                            "   access-control: 127.0.0.1           allow\n",
                                             "   auto-trust-anchor-file: \"/var/lib/unbound/root.key\"\n",
                                             "   cache-max-ttl: 14400\n",
                                             "   cache-min-ttl: 1800\n",
@@ -185,7 +185,7 @@
                                             "   max-udp-size: 3072\n",
                                             "   minimal-responses: yes\n",
                                             "   module-config: \"ipsecmod validator iterator\"\n",
-                                            "   num-threads: 4\n",
+                                            "   num-threads: 2\n",
                                             "   pidfile: \"/var/run/unbound/unbound.pid\"\n",
                                             "   prefetch-key: yes\n",
                                             "   prefetch: yes\n",
@@ -200,9 +200,9 @@
                                             "   unwanted-reply-threshold: 10000000\n",
                                             "   username: \"unbound\"\n",
                                             "   val-clean-additional: yes\n",
-                                            "   val-log-level: 1\n",
+                                            "   val-log-level: 0\n",
                                             "   val-permissive-mode: no\n",
-                                            "   verbosity: 1\n"
+                                            "   verbosity: 0\n"
                                         ]
                                     ]
                                 },
