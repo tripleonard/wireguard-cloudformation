@@ -64,7 +64,7 @@
                         "ToPort": 22,
                         "CidrIp": "0.0.0.0/0"
                     },
-                                        {
+                    {
                         "IpProtocol": "udp",
                         "FromPort": 53,
                         "ToPort": 53,
@@ -209,13 +209,46 @@
                                 "mode": "000644",
                                 "owner": "unbound",
                                 "group": "unbound"
+                            },
+                            "/usr/lib/systemd/system/wg-quick@.service": {
+                                "content": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "[Unit]\n",
+                                            "Description=WireGuard via wg-quick(8) for %I\n",
+                                            "After=network-online.target nss-lookup.target\n",
+                                            "Wants=network-online.target nss-lookup.target\n",
+                                            "Documentation=man:wg-quick(8)\n",
+                                            "Documentation=man:wg(8)\n",
+                                            "Documentation=https://www.wireguard.com/\n",
+                                            "Documentation=https://www.wireguard.com/quickstart/\n",
+                                            "Documentation=https://git.zx2c4.com/WireGuard/about/src/tools/man/wg-quick.8\n",
+                                            "Documentation=https://git.zx2c4.com/WireGuard/about/src/tools/man/wg.8\n",
+                                            "\n",
+                                            "[Service]\n",
+                                            "Type=oneshot\n",
+                                            "RemainAfterExit=yes\n",
+                                            "ExecStartPre=/bin/sleep 60\n",
+                                            "ExecStart=/usr/bin/wg-quick up %i\n",
+                                            "ExecStop=/usr/bin/wg-quick down %i\n",
+                                            "Environment=WG_ENDPOINT_RESOLUTION_RETRIES=infinity\n",
+                                            "\n",
+                                            "[Install]\n",
+                                            "WantedBy=multi-user.target\n"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000644",
+                                "owner": "root",
+                                "group": "root"
                             }
                         },
                         "services": {
                             "sysvinit": {
                                 "unbound": {
-                                    "enabled":  "true",
-                                    "ensureRunning":  "false"
+                                    "enabled": "true",
+                                    "ensureRunning": "false"
                                 }
                             }
                         }
@@ -228,6 +261,9 @@
                 },
                 "InstanceType": {
                     "Ref": "InstanceType"
+                },
+                "IamInstanceProfile": {
+                    "Ref": "WgEc2IamProfile"
                 },
                 "KeyName": {
                     "Ref": "SshKey"
@@ -265,6 +301,16 @@
                                 "sed -i \"s|fakePeerPublicKey|$CLIENT_PUBLIC_KEY|\" /etc/wireguard/wg0.conf\n",
                                 "sed -i \"s|fakePeerPrivateKey|$CLIENT_PRIVATE_KEY|\" /tmp/wg0-client.conf\n",
                                 "\n",
+                                "aws ssm put-parameter",
+                                "    --name \"ClientConfig\"",
+                                "    --type \"SecureString\"",
+                                "    --key-id alias/aws/ssm",
+                                "    --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                "    --value \"$(cat /tmp/wg0-client.conf)\" \n",
+                                "# Download root Internet DNS servers for unbound\n",
                                 "curl -o /var/lib/unbound/root.hints https://www.internic.net/domain/named.cache\n",
                                 "# Erase init log to remove key, may need to comment out to trouble shoot\n",
                                 "#cat /dev/null > /var/log/cloud-init-output.log\n",
@@ -296,6 +342,136 @@
                 "InstanceId": {
                     "Ref": "VpnInstance"
                 }
+            }
+        },
+        "WgEc2IamRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/"
+            }
+        },
+        "WgEc2IamProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "WgEc2IamRole"
+                    }
+                ]
+            }
+        },
+        "WgEc2IamPolicy": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ssm:DescribeAssociation",
+                                "ssm:DescribeDocument",
+                                "ssm:GetDeployablePatchSnapshotForInstance",
+                                "ssm:GetDocument",
+                                "ssm:GetManifest",
+                                "ssm:GetParameters",
+                                "ssm:ListAssociations",
+                                "ssm:ListInstanceAssociations",
+                                "ssm:PutComplianceItems",
+                                "ssm:PutConfigurePackageResult",
+                                "ssm:PutInventory",
+                                "ssm:UpdateAssociationStatus",
+                                "ssm:UpdateInstanceAssociationStatus",
+                                "ssm:UpdateInstanceInformation"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ssmmessages:CreateControlChannel",
+                                "ssmmessages:CreateDataChannel",
+                                "ssmmessages:OpenControlChannel",
+                                "ssmmessages:OpenDataChannel"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ec2messages:AcknowledgeMessage",
+                                "ec2messages:DeleteMessage",
+                                "ec2messages:FailMessage",
+                                "ec2messages:GetEndpoint",
+                                "ec2messages:GetMessages",
+                                "ec2messages:SendReply"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "cloudwatch:PutMetricData"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ec2:DescribeInstanceStatus"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ssm:PutParameter"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "kms:Encrypt"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
+                },
+                "PolicyName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            {
+                                "Ref": "AWS::Region"
+                            }
+                        ]
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Ref": "WgEc2IamRole"
+                    }
+                ]
             }
         }
     },
