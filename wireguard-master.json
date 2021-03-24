@@ -305,6 +305,7 @@
                                 "    --name \"ClientConfig\"",
                                 "    --type \"SecureString\"",
                                 "    --key-id alias/aws/ssm",
+                                "    --overwrite",
                                 "    --region ",
                                 {
                                     "Ref": "AWS::Region"
