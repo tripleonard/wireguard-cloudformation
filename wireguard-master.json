@@ -347,7 +347,7 @@
             }
         },
         "WgClientConfig": {
-            "Description": "Click to acccess Wireguard Client Config",
+            "Description": "Click to access Wireguard Client Config",
             "Value": {
                 "Fn::Join": [
                     "",
