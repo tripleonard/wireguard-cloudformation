@@ -251,7 +251,8 @@
                                 "# Enable wireguard on restart\n",
                                 "sudo systemctl enable wg-quick@wg0.service\n",
                                 "# Erase init log to remove key, may need to comment out to trouble shoot\n",
-                                "#cat /dev/null > /var/log/cloud-init-output.log\n",
+                                "rm -f /tmp/wg0-client.conf\n",
+                                "cat /dev/null > /var/log/cloud-init-output.log\n",
                                 "# Reboot needed to force kernel header to take effect\n",
                                 "reboot\n"
                             ]
