@@ -91,8 +91,7 @@
                             "yum": {
                                 "wireguard-dkms": [],
                                 "wireguard-tools": [],
-                                "kernel-devel": [],
-                                "unbound": []
+                                "kernel-devel": []
                             }
                         },
                         "files": {
@@ -138,7 +137,7 @@
                                                 "Ref": "PeerTunnelSubnet"
                                             },
                                             "\n",
-                                            "DNS = 10.10.10.1\n",
+                                            "DNS = 1.1.1.1\n",
                                             "PrivateKey = fakePeerPrivateKey\n",
                                             "\n",
                                             "[Peer]\n",
@@ -155,61 +154,6 @@
                                 "mode": "000600",
                                 "owner": "root",
                                 "group": "root"
-                            },
-                            "/etc/unbound/unbound.conf": {
-                                "content": {
-                                    "Fn::Join": [
-                                        "",
-                                        [
-                                            "server:\n",
-                                            "   access-control: 0.0.0.0/0           refuse\n",
-                                            "   access-control: 10.10.10.0/24       allow\n",
-                                            "   access-control: 127.0.0.1           allow\n",
-                                            "   auto-trust-anchor-file: \"/var/lib/unbound/root.key\"\n",
-                                            "   cache-max-ttl: 14400\n",
-                                            "   cache-min-ttl: 1800\n",
-                                            "   chroot: /etc/unbound\n",
-                                            "   directory: \"/etc/unbound\"\n",
-                                            "   extended-statistics: yes\n",
-                                            "   harden-dnssec-stripped: yes\n",
-                                            "   harden-glue: yes\n",
-                                            "   harden-referral-path: yes\n",
-                                            "   hide-identity: yes\n",
-                                            "   hide-version: yes\n",
-                                            "   include: \"/etc/unbound/local.d/*.conf\"\n",
-                                            "   interface-automatic: no\n",
-                                            "   interface: 0.0.0.0\n",
-                                            "   ip-transparent: yes\n",
-                                            "   ipsecmod-enabled: no\n",
-                                            "   ipsecmod-hook: \"/usr/libexec/ipsec/_unbound-hook\"\n",
-                                            "   log-time-ascii: yes\n",
-                                            "   max-udp-size: 3072\n",
-                                            "   minimal-responses: yes\n",
-                                            "   module-config: \"ipsecmod validator iterator\"\n",
-                                            "   num-threads: 2\n",
-                                            "   pidfile: \"/var/run/unbound/unbound.pid\"\n",
-                                            "   prefetch-key: yes\n",
-                                            "   prefetch: yes\n",
-                                            "   private-address: 10.10.10.0/24\n",
-                                            "   root-hints: \"/var/lib/unbound/root.hints\"\n",
-                                            "   rrset-roundrobin: yes\n",
-                                            "   so-reuseport: yes\n",
-                                            "   statistics-cumulative: no\n",
-                                            "   statistics-interval: 0\n",
-                                            "   trust-anchor-signaling: yes\n",
-                                            "   trusted-keys-file: \"/etc/unbound/keys.d/*.key\"\n",
-                                            "   unwanted-reply-threshold: 10000000\n",
-                                            "   username: \"unbound\"\n",
-                                            "   val-clean-additional: yes\n",
-                                            "   val-log-level: 0\n",
-                                            "   val-permissive-mode: no\n",
-                                            "   verbosity: 0\n"
-                                        ]
-                                    ]
-                                },
-                                "mode": "000644",
-                                "owner": "unbound",
-                                "group": "unbound"
                             },
                             "/usr/lib/systemd/system/wg-quick@.service": {
                                 "content": {
@@ -243,14 +187,6 @@
                                 "mode": "000644",
                                 "owner": "root",
                                 "group": "root"
-                            }
-                        },
-                        "services": {
-                            "sysvinit": {
-                                "unbound": {
-                                    "enabled": "true",
-                                    "ensureRunning": "false"
-                                }
                             }
                         }
                     }
@@ -312,9 +248,7 @@
                                     "Ref": "AWS::Region"
                                 },
                                 "    --value \"$(cat /tmp/wg0-client.conf)\" \n",
-                                "# Download root Internet DNS servers for unbound\n",
-                                "curl -o /var/lib/unbound/root.hints https://www.internic.net/domain/named.cache\n",
-                                "# Enable wireguard and unbound  on restart\n",
+                                "# Enable wireguard on restart\n",
                                 "sudo systemctl enable wg-quick@wg0.service\n",
                                 "# Erase init log to remove key, may need to comment out to trouble shoot\n",
                                 "#cat /dev/null > /var/log/cloud-init-output.log\n",
