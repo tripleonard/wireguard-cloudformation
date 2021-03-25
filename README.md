@@ -13,16 +13,18 @@ Of Note:
 * The default AMI is Amazon Linux 2 and it grabs the latest (NOT FOR PRODUCTION)
 * This leverages Cloudflare's DNS 1.1.1.1
 * The client config is sent to a kms encrypted SSM Parameter Store
-* There is a force reboot at the end of userdata so that wireguard comes up gracefully
+* There is a force reboot at the end of userdata so that Wireguard comes up gracefully
 * The instance does not get an ssh key passed in and ssh port is not open
 
 Steps:
 
-* Log into AWS console and go to the region of preference
-* Depoly the `wireguard-eip-master.json` template (button here?)
-* Deploy the the `wireguard-master.json` template (button here?)
-* After the Cloudformation is deployed and server has rebooted click the link in the Cloudformation Outputs to see the encrypted client config in SSM Parameter Store
-* Paste config into your client and activate
+1. Download the [Wireguard client](https://www.wireguard.com/install/) for your platform
+2. Log into AWS console and go to the region of preference
+3. Depoly the `wireguard-eip-master.json` template (button here?)
+4. Deploy the the `wireguard-master.json` template (button here?)
+5. After the Cloudformation is deployed and server has rebooted click the link in the Cloudformation Outputs to see the encrypted client config in SSM Parameter Store
+6. Paste config into your client and activate
+7. Profit
 
 Todo:
 
