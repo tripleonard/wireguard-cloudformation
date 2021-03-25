@@ -64,7 +64,7 @@
                         "ToPort": 22,
                         "CidrIp": "0.0.0.0/0"
                     },
-                                        {
+                    {
                         "IpProtocol": "udp",
                         "FromPort": 53,
                         "ToPort": 53,
@@ -91,8 +91,7 @@
                             "yum": {
                                 "wireguard-dkms": [],
                                 "wireguard-tools": [],
-                                "kernel-devel": [],
-                                "unbound": []
+                                "kernel-devel": []
                             }
                         },
                         "files": {
@@ -138,7 +137,7 @@
                                                 "Ref": "PeerTunnelSubnet"
                                             },
                                             "\n",
-                                            "DNS = 10.10.10.1\n",
+                                            "DNS = 1.1.1.1\n",
                                             "PrivateKey = fakePeerPrivateKey\n",
                                             "\n",
                                             "[Peer]\n",
@@ -156,67 +155,38 @@
                                 "owner": "root",
                                 "group": "root"
                             },
-                            "/etc/unbound/unbound.conf": {
+                            "/usr/lib/systemd/system/wg-quick@.service": {
                                 "content": {
                                     "Fn::Join": [
                                         "",
                                         [
-                                            "server:\n",
-                                            "   access-control: 0.0.0.0/0           refuse\n",
-                                            "   access-control: 10.10.10.0/24       allow\n",
-                                            "   access-control: 127.0.0.1           allow\n",
-                                            "   auto-trust-anchor-file: \"/var/lib/unbound/root.key\"\n",
-                                            "   cache-max-ttl: 14400\n",
-                                            "   cache-min-ttl: 1800\n",
-                                            "   directory: \"/etc/unbound\"\n",
-                                            "   extended-statistics: yes\n",
-                                            "   harden-dnssec-stripped: yes\n",
-                                            "   harden-glue: yes\n",
-                                            "   harden-referral-path: yes\n",
-                                            "   hide-identity: yes\n",
-                                            "   hide-version: yes\n",
-                                            "   include: \"/etc/unbound/local.d/*.conf\"\n",
-                                            "   interface-automatic: no\n",
-                                            "   interface: 0.0.0.0\n",
-                                            "   ip-transparent: yes\n",
-                                            "   ipsecmod-enabled: no\n",
-                                            "   ipsecmod-hook: \"/usr/libexec/ipsec/_unbound-hook\"\n",
-                                            "   log-time-ascii: yes\n",
-                                            "   max-udp-size: 3072\n",
-                                            "   minimal-responses: yes\n",
-                                            "   module-config: \"ipsecmod validator iterator\"\n",
-                                            "   num-threads: 2\n",
-                                            "   pidfile: \"/var/run/unbound/unbound.pid\"\n",
-                                            "   prefetch-key: yes\n",
-                                            "   prefetch: yes\n",
-                                            "   private-address: 10.10.10.0/24\n",
-                                            "   root-hints: \"/var/lib/unbound/root.hints\"\n",
-                                            "   rrset-roundrobin: yes\n",
-                                            "   so-reuseport: yes\n",
-                                            "   statistics-cumulative: no\n",
-                                            "   statistics-interval: 0\n",
-                                            "   trust-anchor-signaling: yes\n",
-                                            "   trusted-keys-file: \"/etc/unbound/keys.d/*.key\"\n",
-                                            "   unwanted-reply-threshold: 10000000\n",
-                                            "   username: \"unbound\"\n",
-                                            "   val-clean-additional: yes\n",
-                                            "   val-log-level: 0\n",
-                                            "   val-permissive-mode: no\n",
-                                            "   verbosity: 0\n"
+                                            "[Unit]\n",
+                                            "Description=WireGuard via wg-quick(8) for %I\n",
+                                            "After=network-online.target nss-lookup.target\n",
+                                            "Wants=network-online.target nss-lookup.target\n",
+                                            "Documentation=man:wg-quick(8)\n",
+                                            "Documentation=man:wg(8)\n",
+                                            "Documentation=https://www.wireguard.com/\n",
+                                            "Documentation=https://www.wireguard.com/quickstart/\n",
+                                            "Documentation=https://git.zx2c4.com/WireGuard/about/src/tools/man/wg-quick.8\n",
+                                            "Documentation=https://git.zx2c4.com/WireGuard/about/src/tools/man/wg.8\n",
+                                            "\n",
+                                            "[Service]\n",
+                                            "Type=oneshot\n",
+                                            "RemainAfterExit=yes\n",
+                                            "ExecStartPre=/bin/sleep 60\n",
+                                            "ExecStart=/usr/bin/wg-quick up %i\n",
+                                            "ExecStop=/usr/bin/wg-quick down %i\n",
+                                            "Environment=WG_ENDPOINT_RESOLUTION_RETRIES=infinity\n",
+                                            "\n",
+                                            "[Install]\n",
+                                            "WantedBy=multi-user.target\n"
                                         ]
                                     ]
                                 },
                                 "mode": "000644",
-                                "owner": "unbound",
-                                "group": "unbound"
-                            }
-                        },
-                        "services": {
-                            "sysvinit": {
-                                "unbound": {
-                                    "enabled":  "true",
-                                    "ensureRunning":  "false"
-                                }
+                                "owner": "root",
+                                "group": "root"
                             }
                         }
                     }
@@ -228,6 +198,9 @@
                 },
                 "InstanceType": {
                     "Ref": "InstanceType"
+                },
+                "IamInstanceProfile": {
+                    "Ref": "WgEc2IamProfile"
                 },
                 "KeyName": {
                     "Ref": "SshKey"
@@ -265,9 +238,21 @@
                                 "sed -i \"s|fakePeerPublicKey|$CLIENT_PUBLIC_KEY|\" /etc/wireguard/wg0.conf\n",
                                 "sed -i \"s|fakePeerPrivateKey|$CLIENT_PRIVATE_KEY|\" /tmp/wg0-client.conf\n",
                                 "\n",
-                                "curl -o /var/lib/unbound/root.hints https://www.internic.net/domain/named.cache\n",
+                                "aws ssm put-parameter",
+                                "    --name \"ClientConfig\"",
+                                "    --type \"SecureString\"",
+                                "    --key-id alias/aws/ssm",
+                                "    --overwrite",
+                                "    --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                "    --value \"$(cat /tmp/wg0-client.conf)\" \n",
+                                "# Enable wireguard on restart\n",
+                                "sudo systemctl enable wg-quick@wg0.service\n",
                                 "# Erase init log to remove key, may need to comment out to trouble shoot\n",
-                                "#cat /dev/null > /var/log/cloud-init-output.log\n",
+                                "rm -f /tmp/wg0-client.conf\n",
+                                "cat /dev/null > /var/log/cloud-init-output.log\n",
                                 "# Reboot needed to force kernel header to take effect\n",
                                 "reboot\n"
                             ]
@@ -297,6 +282,80 @@
                     "Ref": "VpnInstance"
                 }
             }
+        },
+        "WgEc2IamRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/"
+            }
+        },
+        "WgEc2IamProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "WgEc2IamRole"
+                    }
+                ]
+            }
+        },
+        "WgEc2IamPolicy": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ssm:PutParameter"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "kms:Encrypt"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
+                },
+                "PolicyName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            {
+                                "Ref": "AWS::Region"
+                            }
+                        ]
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Ref": "WgEc2IamRole"
+                    }
+                ]
+            }
         }
     },
     "Outputs": {
@@ -304,6 +363,24 @@
             "Description": "ID of VPN Instance",
             "Value": {
                 "Ref": "VpnInstance"
+            }
+        },
+        "WgClientConfig": {
+            "Description": "Click to acccess Wireguard Client Config",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "https://",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        ".console.aws.amazon.com/systems-manager/parameters/ClientConfig/description?region=",
+                        {
+                            "Ref": "AWS::Region"
+                        }
+                    ]
+                ]
             }
         }
     }
