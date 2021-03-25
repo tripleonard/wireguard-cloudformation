@@ -8,10 +8,6 @@
             "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2",
             "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
         },
-        "SshKey": {
-            "Description": "Previously created ssh key",
-            "Type": "String"
-        },
         "InstanceType": {
             "Default": "t3a.nano",
             "Description": "Instance type",
@@ -58,18 +54,6 @@
             "Properties": {
                 "GroupDescription": "VPN security group created by cloudformation",
                 "SecurityGroupIngress": [
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": 22,
-                        "ToPort": 22,
-                        "CidrIp": "0.0.0.0/0"
-                    },
-                    {
-                        "IpProtocol": "udp",
-                        "FromPort": 53,
-                        "ToPort": 53,
-                        "CidrIp": "0.0.0.0/0"
-                    },
                     {
                         "IpProtocol": "udp",
                         "FromPort": 51820,
@@ -201,9 +185,6 @@
                 },
                 "IamInstanceProfile": {
                     "Ref": "WgEc2IamProfile"
-                },
-                "KeyName": {
-                    "Ref": "SshKey"
                 },
                 "UserData": {
                     "Fn::Base64": {

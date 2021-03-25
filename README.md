@@ -14,6 +14,7 @@ Of Note:
 * This leverages Cloudflare's DNS 1.1.1.1
 * The client config is sent to a kms encrypted SSM Parameter Store
 * There is a force reboot at the end of userdata so that wireguard comes up gracefully
+* The instance does not get an ssh key passed in and ssh port is not open
 
 Steps:
 
