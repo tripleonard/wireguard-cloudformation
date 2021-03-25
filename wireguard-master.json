@@ -168,6 +168,7 @@
                                             "   auto-trust-anchor-file: \"/var/lib/unbound/root.key\"\n",
                                             "   cache-max-ttl: 14400\n",
                                             "   cache-min-ttl: 1800\n",
+                                            "   chroot: /etc/unbound\n",
                                             "   directory: \"/etc/unbound\"\n",
                                             "   extended-statistics: yes\n",
                                             "   harden-dnssec-stripped: yes\n",
@@ -313,6 +314,8 @@
                                 "    --value \"$(cat /tmp/wg0-client.conf)\" \n",
                                 "# Download root Internet DNS servers for unbound\n",
                                 "curl -o /var/lib/unbound/root.hints https://www.internic.net/domain/named.cache\n",
+                                "# Enable wireguard and unbound  on restart\n",
+                                "sudo systemctl enable wg-quick@wg0.service\n",
                                 "# Erase init log to remove key, may need to comment out to trouble shoot\n",
                                 "#cat /dev/null > /var/log/cloud-init-output.log\n",
                                 "# Reboot needed to force kernel header to take effect\n",
@@ -386,62 +389,6 @@
                         {
                             "Effect": "Allow",
                             "Action": [
-                                "ssm:DescribeAssociation",
-                                "ssm:DescribeDocument",
-                                "ssm:GetDeployablePatchSnapshotForInstance",
-                                "ssm:GetDocument",
-                                "ssm:GetManifest",
-                                "ssm:GetParameters",
-                                "ssm:ListAssociations",
-                                "ssm:ListInstanceAssociations",
-                                "ssm:PutComplianceItems",
-                                "ssm:PutConfigurePackageResult",
-                                "ssm:PutInventory",
-                                "ssm:UpdateAssociationStatus",
-                                "ssm:UpdateInstanceAssociationStatus",
-                                "ssm:UpdateInstanceInformation"
-                            ],
-                            "Resource": "*"
-                        },
-                        {
-                            "Effect": "Allow",
-                            "Action": [
-                                "ssmmessages:CreateControlChannel",
-                                "ssmmessages:CreateDataChannel",
-                                "ssmmessages:OpenControlChannel",
-                                "ssmmessages:OpenDataChannel"
-                            ],
-                            "Resource": "*"
-                        },
-                        {
-                            "Effect": "Allow",
-                            "Action": [
-                                "ec2messages:AcknowledgeMessage",
-                                "ec2messages:DeleteMessage",
-                                "ec2messages:FailMessage",
-                                "ec2messages:GetEndpoint",
-                                "ec2messages:GetMessages",
-                                "ec2messages:SendReply"
-                            ],
-                            "Resource": "*"
-                        },
-                        {
-                            "Effect": "Allow",
-                            "Action": [
-                                "cloudwatch:PutMetricData"
-                            ],
-                            "Resource": "*"
-                        },
-                        {
-                            "Effect": "Allow",
-                            "Action": [
-                                "ec2:DescribeInstanceStatus"
-                            ],
-                            "Resource": "*"
-                        },
-                        {
-                            "Effect": "Allow",
-                            "Action": [
                                 "ssm:PutParameter"
                             ],
                             "Resource": "*"
@@ -481,6 +428,24 @@
             "Description": "ID of VPN Instance",
             "Value": {
                 "Ref": "VpnInstance"
+            }
+        },
+        "WgClientConfig": {
+            "Description": "Click to acccess Wireguard Client Config",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "https://",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        ".console.aws.amazon.com/systems-manager/parameters/ClientConfig/description?region=",
+                        {
+                            "Ref": "AWS::Region"
+                        }
+                    ]
+                ]
             }
         }
     }
