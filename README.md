@@ -15,7 +15,7 @@ Steps:
 3. Depoly the `wireguard-eip-master.json` template (button here?)
 4. Deploy the the `wireguard-master.json` template (button here?)
 5. After the Cloudformation is deployed and server has rebooted click the link in the Cloudformation Outputs to see the encrypted client config in SSM Parameter Store
-6. Paste config into your client and activate (or add it to your favorite qr code generator to add a tunnel to a mobile device)
+6. Paste config into your client and activate (or add it to your favorite, and secure, qr code generator to add a tunnel to a mobile device)
 7. Profit
 
 Of Note:
