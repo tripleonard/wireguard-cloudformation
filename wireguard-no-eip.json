@@ -1,0 +1,368 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Set up a wireguard VPN",
+    "Metadata": {},
+    "Parameters": {
+        "LatestAmiId": {
+            "Description": "Grab the latest AL2 AMI",
+            "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2",
+            "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+        },
+        "InstanceType": {
+            "Default": "t3a.nano",
+            "Description": "Instance type",
+            "Type": "String"
+        },
+        "ServerTunnelSubnet": {
+            "Default": "10.10.10.1/24",
+            "Description": "The network available to the tunnel.",
+            "Type": "String"
+        },
+        "PeerTunnelSubnet": {
+            "Default": "10.10.10.2/32",
+            "Description": "The possible tunnel peers. One is the default",
+            "Type": "String"
+        },
+        "VpnSecurityGroupID": {
+            "Description": "The VPC default Security GroupID",
+            "Type": "AWS::EC2::SecurityGroup::Id"
+        },
+        "AssociateEip": {
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "Default": "true",
+            "Description": "This is to associate with an already created/exported EIP. Should be true unless testing.",
+            "Type": "String"
+        }
+    },
+    "Mappings": {},
+    "Conditions": {
+        "CreateAssociateEip": {
+            "Fn::Equals": [
+                {
+                    "Ref": "AssociateEip"
+                },
+                "true"
+            ]
+        }
+    },
+    "Resources": {
+        "VpnSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "VPN security group created by cloudformation",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "udp",
+                        "FromPort": 51820,
+                        "ToPort": 51820,
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "VpnInstance": {
+            "Type": "AWS::EC2::Instance",
+            "Metadata": {
+                "AWS::CloudFormation::Init": {
+                    "config": {
+                        "packages": {
+                            "rpm": {
+                                "epel": "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+                            },
+                            "yum": {
+                                "wireguard-dkms": [],
+                                "wireguard-tools": [],
+                                "kernel-devel": []
+                            }
+                        },
+                        "files": {
+                            "/etc/wireguard/wg0.conf": {
+                                "content": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "[Interface]\n",
+                                            "Address = ",
+                                            {
+                                                "Ref": "ServerTunnelSubnet"
+                                            },
+                                            "\n",
+                                            "ListenPort = 51820\n",
+                                            "PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE\n",
+                                            "PostUp   = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE\n",
+                                            "PrivateKey = fakeServerPrivateKey\n",
+                                            "SaveConfig = true\n",
+                                            "\n",
+                                            "[Peer]\n",
+                                            "PublicKey = fakePeerPublicKey\n",
+                                            "AllowedIPs = ",
+                                            {
+                                                "Ref": "PeerTunnelSubnet"
+                                            },
+                                            "\n"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000600",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/tmp/wg0-client.conf": {
+                                "content": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "[Interface]\n",
+                                            "Address = ",
+                                            {
+                                                "Ref": "PeerTunnelSubnet"
+                                            },
+                                            "\n",
+                                            "DNS = 1.1.1.1\n",
+                                            "PrivateKey = fakePeerPrivateKey\n",
+                                            "\n",
+                                            "[Peer]\n",
+                                            "PublicKey = fakeServerPublicKey\n",
+                                            "AllowedIPs = 0.0.0.0/0\n",
+                                            "Endpoint = ",
+                                            {
+                                                "Fn::ImportValue": "WireguardEIPAddress"
+                                            },
+                                            ":51820\n"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000600",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/usr/lib/systemd/system/wg-quick@.service": {
+                                "content": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "[Unit]\n",
+                                            "Description=WireGuard via wg-quick(8) for %I\n",
+                                            "After=network-online.target nss-lookup.target\n",
+                                            "Wants=network-online.target nss-lookup.target\n",
+                                            "Documentation=man:wg-quick(8)\n",
+                                            "Documentation=man:wg(8)\n",
+                                            "Documentation=https://www.wireguard.com/\n",
+                                            "Documentation=https://www.wireguard.com/quickstart/\n",
+                                            "Documentation=https://git.zx2c4.com/WireGuard/about/src/tools/man/wg-quick.8\n",
+                                            "Documentation=https://git.zx2c4.com/WireGuard/about/src/tools/man/wg.8\n",
+                                            "\n",
+                                            "[Service]\n",
+                                            "Type=oneshot\n",
+                                            "RemainAfterExit=yes\n",
+                                            "ExecStartPre=/bin/sleep 60\n",
+                                            "ExecStart=/usr/bin/wg-quick up %i\n",
+                                            "ExecStop=/usr/bin/wg-quick down %i\n",
+                                            "Environment=WG_ENDPOINT_RESOLUTION_RETRIES=infinity\n",
+                                            "\n",
+                                            "[Install]\n",
+                                            "WantedBy=multi-user.target\n"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000644",
+                                "owner": "root",
+                                "group": "root"
+                            }
+                        }
+                    }
+                }
+            },
+            "Properties": {
+                "ImageId": {
+                    "Ref": "LatestAmiId"
+                },
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                },
+                "IamInstanceProfile": {
+                    "Ref": "WgEc2IamProfile"
+                },
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#!/bin/bash -xe\n",
+                                "yum update -y\n",
+                                "# Add wireguard repo\n",
+                                "curl -Lo /etc/yum.repos.d/wireguard.repo https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo\n",
+                                "# Install the files and packages from the metadata\n",
+                                "/opt/aws/bin/cfn-init -v ",
+                                "         --stack ",
+                                {
+                                    "Ref": "AWS::StackName"
+                                },
+                                "         --resource VpnInstance     ",
+                                "         --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                "\n",
+                                "echo \"net.ipv4.ip_forward = 1\" > /etc/sysctl.conf\n",
+                                "echo \"net.ipv6.conf.all.forwarding = 1\" >> /etc/sysctl.conf\n",
+                                "# Generate keys and put them in configs\n",
+                                "SERVER_PRIVATE_KEY=$(wg genkey)\n",
+                                "SERVER_PUBLIC_KEY=$(echo $SERVER_PRIVATE_KEY | wg pubkey)\n",
+                                "sed -i \"s|fakeServerPrivateKey|$SERVER_PRIVATE_KEY|\" /etc/wireguard/wg0.conf\n",
+                                "sed -i \"s|fakeServerPublicKey|$SERVER_PUBLIC_KEY|\" /tmp/wg0-client.conf\n",
+                                "CLIENT_PRIVATE_KEY=$(wg genkey)\n",
+                                "CLIENT_PUBLIC_KEY=$(echo $CLIENT_PRIVATE_KEY | wg pubkey)\n",
+                                "sed -i \"s|fakePeerPublicKey|$CLIENT_PUBLIC_KEY|\" /etc/wireguard/wg0.conf\n",
+                                "sed -i \"s|fakePeerPrivateKey|$CLIENT_PRIVATE_KEY|\" /tmp/wg0-client.conf\n",
+                                "\n",
+                                "aws ssm put-parameter",
+                                "    --name \"ClientConfig\"",
+                                "    --type \"SecureString\"",
+                                "    --key-id alias/aws/ssm",
+                                "    --overwrite",
+                                "    --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                "    --value \"$(cat /tmp/wg0-client.conf)\" \n",
+                                "# Enable wireguard on restart\n",
+                                "sudo systemctl enable wg-quick@wg0.service\n",
+                                "# Erase init log to remove key, may need to comment out to trouble shoot\n",
+                                "rm -f /tmp/wg0-client.conf\n",
+                                "cat /dev/null > /var/log/cloud-init-output.log\n",
+                                "# Reboot needed to force kernel header to take effect\n",
+                                "reboot\n"
+                            ]
+                        ]
+                    }
+                },
+                "SecurityGroupIds": [
+                    {
+                        "Ref": "VpnSecurityGroupID"
+                    }
+                ],
+                "SecurityGroups": [
+                    {
+                        "Ref": "VpnSecurityGroup"
+                    }
+                ]
+            }
+        },
+        "WireguardVpnEipAsso": {
+            "Type": "AWS::EC2::EIPAssociation",
+            "Condition": "CreateAssociateEip",
+            "Properties": {
+                "AllocationId": {
+                    "Fn::ImportValue": "WireguardEIPAllocationId"
+                },
+                "InstanceId": {
+                    "Ref": "VpnInstance"
+                }
+            }
+        },
+        "WgEc2IamRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/"
+            }
+        },
+        "WgEc2IamProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "WgEc2IamRole"
+                    }
+                ]
+            }
+        },
+        "WgEc2IamPolicy": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ssm:PutParameter"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "kms:Encrypt"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
+                },
+                "PolicyName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            {
+                                "Ref": "AWS::Region"
+                            }
+                        ]
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Ref": "WgEc2IamRole"
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "VpnInstanceId": {
+            "Description": "ID of VPN Instance",
+            "Value": {
+                "Ref": "VpnInstance"
+            }
+        },
+        "WgClientConfig": {
+            "Description": "Click to access Wireguard Client Config",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "https://",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        ".console.aws.amazon.com/systems-manager/parameters/ClientConfig/description?region=",
+                        {
+                            "Ref": "AWS::Region"
+                        }
+                    ]
+                ]
+            }
+        }
+    }
+}
