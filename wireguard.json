@@ -26,28 +26,10 @@
         "VpnSecurityGroupID": {
             "Description": "The VPC default Security GroupID",
             "Type": "AWS::EC2::SecurityGroup::Id"
-        },
-        "AssociateEip": {
-            "AllowedValues": [
-                "true",
-                "false"
-            ],
-            "Default": "true",
-            "Description": "This is to associate with an already created/exported EIP. Should be true unless testing.",
-            "Type": "String"
         }
     },
     "Mappings": {},
-    "Conditions": {
-        "CreateAssociateEip": {
-            "Fn::Equals": [
-                {
-                    "Ref": "AssociateEip"
-                },
-                "true"
-            ]
-        }
-    },
+    "Conditions": {},
     "Resources": {
         "VpnSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
@@ -129,7 +111,7 @@
                                             "AllowedIPs = 0.0.0.0/0\n",
                                             "Endpoint = ",
                                             {
-                                                "Fn::ImportValue": "WireguardEIPAddress"
+                                                "Ref": "WireguardEIP"
                                             },
                                             ":51820\n"
                                         ]
@@ -252,12 +234,17 @@
                 ]
             }
         },
+        "WireguardEIP": {
+            "Type": "AWS::EC2::EIP",
+            "Properties": {
+                "Domain" : "vpc",
+            }
+        },
         "WireguardVpnEipAsso": {
             "Type": "AWS::EC2::EIPAssociation",
-            "Condition": "CreateAssociateEip",
             "Properties": {
-                "AllocationId": {
-                    "Fn::ImportValue": "WireguardEIPAllocationId"
+                "EIP": {
+                    "Ref": "WireguardEIP"
                 },
                 "InstanceId": {
                     "Ref": "VpnInstance"
