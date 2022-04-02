@@ -7,7 +7,7 @@ Steps:
 
 1. Download the [Wireguard client](https://www.wireguard.com/install/) for your platform
 2. Log into AWS console and go to the region of preference
-3. Depoly the `wireguard.json` template
+3. Clone this repo and depoly the `wireguard.json` template
 4. After the Cloudformation is deployed and server has rebooted click the link in the Cloudformation Outputs to see the encrypted client config in SSM Parameter Store (or navigate to Parameter Store in the console)
 5. Paste config into your client and activate (or add it to your favorite, and secure, qr code generator to add a tunnel to a mobile device)
 6. Profit?
